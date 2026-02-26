@@ -10,14 +10,23 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BNYRCY3tqoASLrAxgxtYWzZWhqwE2AcwYwIRLIpFXoABafZtGzqY612ankX7LJT2AuLxtbDLJkUfRVl5MX9-5bw}
+        NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Asia/Seoul}
     restart: always
     ports:
       - "3000:3000"
     environment:
-      # These should be overridden by Portainer or production .env
+      # These should be overridden by Portainer or a single production .env
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wos_community}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-changeme_in_production}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BNYRCY3tqoASLrAxgxtYWzZWhqwE2AcwYwIRLIpFXoABafZtGzqY612ankX7LJT2AuLxtbDLJkUfRVl5MX9-5bw}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-UqFQ19sleTaD0Oi7gLDCRynwoCu0gOwO8fvbKfFEsCo}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@woscommunity.com}
+      - NEXT_PUBLIC_TZ=${NEXT_PUBLIC_TZ:-Asia/Seoul}
     networks:
       - default
       - proxy-tier

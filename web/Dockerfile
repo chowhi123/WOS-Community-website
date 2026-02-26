@@ -24,6 +24,13 @@ ENV NEXT_TELEMETRY_DISABLED 1
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Inject Build-time Next.js Environment Variables
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+ARG NEXT_PUBLIC_TZ
+ENV NEXT_PUBLIC_TZ=$NEXT_PUBLIC_TZ
+
 RUN npm run build
 
 # Production image, copy all the files and run next
