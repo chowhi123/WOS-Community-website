@@ -1,0 +1,426 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User & Auth
+enum GlobalRole {
+  USER
+  ADMIN
+}
+
+enum NotificationType {
+  MENTION
+  COMMENT
+  REPLY
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique // Hidden from other users
+  name  String? // Google Name (initially)
+  image String? // Google Image
+
+  // Custom Identity
+  playerId    String? @unique // WOS Game FID
+  serverCode  String? // e.g., "#2517"
+  displayName String? // e.g., "DarkAcid"
+  lastProfileSyncAt DateTime? // Enforces 7-day cooldown
+
+  globalRole   GlobalRole @default(USER)
+  lastActiveAt DateTime   @default(now())
+  isActive     Boolean    @default(true)
+  isApprovedLeader Boolean @default(false)
+
+  // Relations
+  createdAlliances Alliance[]         @relation("AllianceCreator")
+  memberships      AllianceMember[]
+  posts            Post[]
+  comments         Comment[]
+  messagesSent     Message[]          @relation("Sender")
+  messagesReceived Message[]          @relation("Receiver")
+  blockedUsers     UserBlock[]        @relation("Blocker")
+  blockedBy        UserBlock[]        @relation("Blocked")
+  pushSubs         PushSubscription[]
+  reservations     Reservation[]
+  pollVotes        PollVote[]
+  
+  ministryReservations MinistryReservation[]
+  
+  constructionReservations ConstructionReservation[]
+  trainingReservations     TrainingReservation[]
+  
+  pinnedBoards   Board[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  ChannelMessage ChannelMessage[]
+  notifications  Notification[]
+  eventSubscriptions EventSubscription[]
+  likes          PostLike[]
+}
+
+// Alliances (formerly Guilds)
+model Alliance {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  logo        String? // New: Alliance Logo URL
+  logoPos     String? // CSS object-position (e.g. "50% 50%")
+  banner      String? // New: Alliance Banner URL
+  bannerPos   String? // CSS object-position
+
+  // Relations
+  createdById String
+  createdBy   User              @relation("AllianceCreator", fields: [createdById], references: [id])
+  members     AllianceMember[]
+  boards      Board[]
+  events      Event[]
+  posts       Post[]
+  channels    AllianceChannel[] // New: Chat Channels
+
+  lastPostAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Feature/Settings Flags
+  enableConstructionRes Boolean @default(true)
+  enableTrainingRes     Boolean @default(true)
+  
+  constructionReservations ConstructionReservation[]
+  trainingReservations     TrainingReservation[]
+}
+
+model ConstructionReservation {
+  id          String   @id @default(cuid())
+  allianceId  String
+  alliance    Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  startTime   DateTime
+  endTime     DateTime
+  note        String?
+  
+  createdAt   DateTime @default(now())
+}
+
+model TrainingReservation {
+  id          String   @id @default(cuid())
+  allianceId  String
+  alliance    Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  startTime   DateTime
+  endTime     DateTime
+  note        String?
+  
+  createdAt   DateTime @default(now())
+}
+
+model AllianceChannel {
+  id   String @id @default(cuid())
+  name String
+  type String @default("TEXT") // TEXT, VOICE
+  minRole String @default("R1")
+  minReadRole String @default("R1")
+
+  allianceId String
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+
+  messages ChannelMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChannelMessage {
+  id      String @id @default(cuid())
+  content String
+
+  channelId String
+  channel   AllianceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum AllianceRole {
+  R1
+  R2
+  R3
+  R4 // Officer
+  R5 // Leader
+}
+
+// ... existing AllianceMember ...
+model AllianceMember {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allianceId String
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+
+  role     AllianceRole @default(R1)
+  joinedAt DateTime     @default(now())
+
+  autoSubscribeEvents Boolean @default(true)
+
+  @@unique([userId, allianceId])
+}
+
+// Content System (Boards & Posts)
+model Board {
+  id                  String   @id @default(cuid())
+  title               String
+  slug                String
+  description         String?
+  isGlobal            Boolean  @default(false) // True = Admin created, False = R5 created
+  category            String? // e.g., "IT News", "Free" - This is the "Board Group"
+  availableCategories String[] @default([]) // Categories allowed for posts in this board
+
+  allianceId String?
+  alliance   Alliance? @relation(fields: [allianceId], references: [id])
+
+  minRole    String   @default("R1") // Minimum role to write: R1, R2, R3, R4, R5
+
+  posts Post[]
+  pinnedBy User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug, allianceId], name: "board_slug_scope")
+}
+
+model Post {
+  id      String @id @default(cuid())
+  title   String
+  content String // DB Text (Rich Text HTML/JSON)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  boardId String?
+  board   Board?  @relation(fields: [boardId], references: [id])
+
+  allianceId String?
+  alliance   Alliance? @relation(fields: [allianceId], references: [id])
+
+  category String? // Info, Guide, etc.
+  tags     String[] @default([]) // Array of tags
+
+  viewCount Int @default(0)
+  likeCount Int @default(0)
+  likes     PostLike[]
+
+  comments Comment[]
+  poll     Poll?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id      String @id @default(cuid())
+  content String
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Social Features
+model Poll {
+  id       String    @id @default(cuid())
+  question String
+  options  Json // Array of option strings
+  endAt    DateTime?
+
+  postId String @unique
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  votes PollVote[]
+}
+
+model PollVote {
+  id     String @id @default(cuid())
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  optionIndex Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([pollId, userId])
+}
+
+// Messaging
+model Message {
+  id      String @id @default(cuid())
+  content String
+
+  senderId String
+  sender   User   @relation("Sender", fields: [senderId], references: [id])
+
+  receiverId String
+  receiver   User   @relation("Receiver", fields: [receiverId], references: [id])
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model UserBlock {
+  id        String @id @default(cuid())
+  blockerId String
+  blocker   User   @relation("Blocker", fields: [blockerId], references: [id])
+
+  blockedId String
+  blocked   User   @relation("Blocked", fields: [blockedId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+// Events & Reservations
+model Event {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+
+  allianceId String
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+
+  startTime      DateTime
+  endTime        DateTime?
+  recurrenceRule String? // VCALENDAR RRULE string
+
+  reservations Reservation[]
+
+  reminderSent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  subscriptions EventSubscription[]
+}
+
+model EventSubscription {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, eventId])
+}
+
+model Reservation {
+  id       String   @id @default(cuid())
+  slotTime DateTime // The specific 30-min slot reserved
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  status String @default("CONFIRMED") // CONFIRMED, CANCELLED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Notifications
+model PushSubscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint String @unique
+  auth     String
+  p256dh   String
+
+  createdAt DateTime @default(now())
+}
+
+model MinistryReservation {
+  id          String   @id @default(cuid())
+  
+  // Specific Title (e.g., "VICE_PRESIDENT", "MINISTER_OF_INTERIOR")
+  position    String   
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Desired Time Slot
+  startTime   DateTime
+  endTime     DateTime
+
+  // Application Data
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  // Stored as JSON: { fireCrystals: 3000, refinedFireCrystals: 600, shards: 500, speedups: 200 }
+  // or { trainingSpeedups: 200 }
+  resourceData Json?
+
+  // Admin Note (Optional)
+  adminNote   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PostLike {
+  id     String @id @default(cuid())
+  
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}

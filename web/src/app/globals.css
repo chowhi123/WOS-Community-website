@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+
+  /* Thin Scrollbar */
+  .thin-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    /* Horizontal scrollbar height */
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(56, 189, 248, 0.3);
+    /* Ice color low opacity */
+    border-radius: 20px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(56, 189, 248, 0.6);
+  }
+
+  /* No Scrollbar */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+
+:root {
+  /* White Out Survival Theme Palette */
+  --background: #0B101B;
+  /* Deep Blue/Black */
+  --foreground: #f8fafc;
+  /* Slate 50 */
+  --surface: #151E2F;
+  /* Dark Blue Panel */
+  --surface-hover: #1E293B;
+  /* Lighter Panel */
+  --border: #334155;
+  /* Slate 700 */
+
+  --primary: #38BDF8;
+  /* Ice Blue (Sky 400) */
+  --primary-hover: #0EA5E9;
+  /* Ice Blue Darker (Sky 500) */
+  --primary-foreground: #0f172a;
+
+  --secondary: #0ea5e9;
+  /* Sky 500 */
+  --secondary-foreground: #ffffff;
+
+  --accent: #F43F5E;
+  /* Fire/Rose */
+  --accent-foreground: #ffffff;
+
+  --muted: #94a3b8;
+  /* Slate 400 */
+  --muted-foreground: #64748b;
+  /* Slate 500 */
+
+  --radius: 0.5rem;
+
+  /* Fonts mapped to variables injected by Next.js */
+  --font-sans: var(--font-inter), sans-serif;
+  --font-heading: var(--font-outfit), sans-serif;
+}
+
+[data-theme='light'] {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --border: #e2e8f0;
+}
+
+html,
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+p {
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--primary);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

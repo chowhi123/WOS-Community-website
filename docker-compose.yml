@@ -1,0 +1,50 @@
+version: '3.8'
+
+networks:
+  default:
+  proxy-tier:
+    external: true
+
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # These should be overridden by Portainer or production .env
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wos_community}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-changeme_in_production}
+    networks:
+      - default
+      - proxy-tier
+    volumes:
+      - uploads_data:/app/public/uploads
+    depends_on:
+      - db
+    # Removed volume mount for code to ensure production image is used
+    # volumes:
+    #   - ./web:/app
+    #   - /app/node_modules
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-wos_community}
+    # Removed ports mapping to prevent external access
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+  uploads_data:

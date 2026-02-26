@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .stroke-elem {
+      stroke: #000;
+      stroke-linecap: round;
+    }
+    .text-elem {
+      fill: #000;
+    }
+    @media (prefers-color-scheme: dark) {
+      .stroke-elem {
+        stroke: #fff;
+      }
+      .text-elem {
+        fill: #fff;
+      }
+    }
+  </style>
+  <circle cx="50" cy="50" r="42" fill="none" stroke-width="4" class="stroke-elem" />
+  <line x1="50" y1="20" x2="50" y2="80" stroke-width="4" class="stroke-elem" />
+  <line x1="20" y1="50" x2="80" y2="50" stroke-width="4" class="stroke-elem" />
+  <text x="50" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="1" class="text-elem">WOS</text>
+</svg>
